@@ -72,12 +72,6 @@ const dom = {
     diaryLocation: document.getElementById('diaryLocation'),
     diaryTags: document.getElementById('diaryTags'),
     diaryImage: document.getElementById('diaryImage'),
-    diaryImageUrl: document.getElementById('diaryImageUrl'),
-    imageUploadBtn: document.getElementById('imageUploadBtn'),
-    imageFileName: document.getElementById('imageFileName'),
-    imagePreview: document.getElementById('imagePreview'),
-    previewImg: document.getElementById('previewImg'),
-    removeImageBtn: document.getElementById('removeImageBtn'),
     diaryVisibility: document.getElementById('diaryVisibility'),
 
     diariesContainer: document.getElementById('diariesContainer'),
@@ -217,14 +211,6 @@ function setupEventListeners() {
     dom.cancelBtn.addEventListener('click', closeDiaryModal);
     document.querySelector('#diaryModal .modal-close').addEventListener('click', closeDiaryModal);
 
-    // 图片上传
-    dom.imageUploadBtn.addEventListener('click', () => {
-        dom.diaryImage.click();
-    });
-
-    dom.diaryImage.addEventListener('change', handleImageSelect);
-    dom.removeImageBtn.addEventListener('click', removeSelectedImage);
-
     // 个人资料
     dom.profileBtn.addEventListener('click', openProfileModal);
     dom.profileForm.addEventListener('submit', handleUpdateProfile);
@@ -324,9 +310,6 @@ function openNewDiaryModal() {
     currentEditingDiaryId = null;
     dom.modalTitle.textContent = '新建日记';
     dom.diaryForm.reset();
-    dom.diaryImageUrl.value = '';
-    dom.imageFileName.textContent = '';
-    dom.imagePreview.style.display = 'none';
     setTodayDate();
     dom.diaryModal.classList.add('active');
 }
@@ -353,7 +336,7 @@ async function handleSaveDiary(e) {
         weather: dom.diaryWeather.value,
         location: dom.diaryLocation.value,
         tags: dom.diaryTags.value,
-        imageUrl: dom.diaryImageUrl.value,
+        imageUrl: dom.diaryImage.value,
         visibility: dom.diaryVisibility.value,
     };
 
@@ -463,21 +446,8 @@ async function editDiary(id) {
         dom.diaryWeather.value = diary.weather || '';
         dom.diaryLocation.value = diary.location || '';
         dom.diaryTags.value = diary.tags || '';
-        dom.diaryImageUrl.value = diary.imageUrl || '';
-        dom.diaryImage.value = '';
-        dom.imageFileName.textContent = '';
-        
-        // 显示现有的图片预览
-        if (diary.imageUrl) {
-            dom.previewImg.src = diary.imageUrl;
-            dom.imagePreview.style.display = 'block';
-            dom.imageFileName.textContent = '已上传';
-        } else {
-            dom.imagePreview.style.display = 'none';
-        }
-        
+        dom.diaryImage.value = diary.imageUrl || '';
         dom.diaryDate.valueAsDate = new Date(diary.createdAt);
-        dom.diaryVisibility.value = diary.visibility || 'PRIVATE';
         dom.diaryModal.classList.add('active');
     }
 }
@@ -512,7 +482,38 @@ async function viewDiary(id) {
             </div>
             ${imageHtml}
             <div>${diary.content}</div>
+            
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;">
+            
+            <div class="comments-section">
+                <h3>评论</h3>
+                <div id="commentsList" class="comments-list">
+                    <!-- 评论将动态插入这里 -->
+                </div>
+                <div class="comment-input-area">
+                    <textarea id="commentInput" placeholder="写下你的评论..." rows="3"></textarea>
+                    <button id="submitCommentBtn" class="btn btn-primary">发表评论</button>
+                </div>
+            </div>
         `;
+
+        // 只有当前用户自己的日记才能编辑和删除
+        const isOwner = diary.userId === currentUser.id;
+        dom.editBtn.style.display = isOwner ? 'inline-block' : 'none';
+        dom.deleteBtn.style.display = isOwner ? 'inline-block' : 'none';
+
+        // 加载评论
+        await loadComments(id);
+
+        // 绑定提交评论事件
+        document.getElementById('submitCommentBtn').addEventListener('click', async () => {
+            const commentText = document.getElementById('commentInput').value.trim();
+            if (!commentText) {
+                alert('请输入评论内容');
+                return;
+            }
+            await submitComment(id, commentText);
+        });
 
         dom.viewModal.classList.add('active');
     }
@@ -703,7 +704,7 @@ function createSquareDiaryCard(diary) {
         <div class="diary-body">
             <div class="diary-author">
                 <img src="https://ui-avatars.com/api/?name=User&background=7c3aed&color=fff" alt="作者头像" class="author-avatar">
-                <span class="author-name">用户 ${diary.userId}</span>
+                <span class="author-name">${diary.user?.nickname || '匿名用户'}</span>
             </div>
             <div class="diary-date">${utils.formatDate(diary.createdAt)}</div>
             <div class="diary-title">${diary.title}</div>
@@ -716,7 +717,7 @@ function createSquareDiaryCard(diary) {
             <div class="diary-interactions">
                 <button class="like-btn" data-id="${diary.id}" data-liked="false">
                     <span class="like-icon">❤️</span>
-                    <span class="like-count">${diary.views || 0}</span>
+                    <span class="like-count">0</span>
                 </button>
                 <button class="comment-btn" data-id="${diary.id}">
                     <span class="comment-icon">💬</span>
@@ -733,6 +734,14 @@ function createSquareDiaryCard(diary) {
     });
 
     const likeBtn = card.querySelector('.like-btn');
+    const commentBtn = card.querySelector('.comment-btn');
+
+    // 加载点赞数和状态
+    loadLikeInfo(diary.id, likeBtn);
+
+    // 加载评论数
+    loadCommentCount(diary.id, commentBtn);
+
     likeBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         await toggleLike(diary.id, likeBtn);
@@ -747,24 +756,62 @@ async function viewPublicDiary(diaryId) {
         const result = await api.viewDiary(diaryId);
         if (result.code === 200) {
             const diary = result.data;
+            currentEditingDiaryId = diaryId;
+
+            let tagsHtml = '';
+            if (diary.tags) {
+                tagsHtml = diary.tags.split(',').map(tag =>
+                    `<span class="meta-item">#${tag.trim()}</span>`
+                ).join('');
+            }
+
+            const imageHtml = diary.imageUrl ?
+                `<img src="${diary.imageUrl}" alt="日记图片" onerror="this.style.display='none'">` : '';
+
             dom.viewContent.innerHTML = `
-                <div class="view-diary-header">
-                    <h2>${diary.title}</h2>
-                    <div class="view-diary-meta">
-                        <span>${utils.formatDate(diary.createdAt)}</span>
-                        ${diary.mood ? `<span>${utils.getMoodEmoji(diary.mood)} ${diary.mood}</span>` : ''}
+                <h2>${diary.title}</h2>
+                <div class="detail-meta">
+                    <span>📅 ${utils.formatDate(diary.createdAt)}</span>
+                    ${diary.mood ? `<span>${utils.getMoodEmoji(diary.mood)} ${diary.mood}</span>` : ''}
+                    ${diary.weather ? `<span>${utils.getWeatherEmoji(diary.weather)} ${diary.weather}</span>` : ''}
+                    ${diary.location ? `<span>📍 ${diary.location}</span>` : ''}
+                </div>
+                <div>
+                    ${tagsHtml}
+                </div>
+                ${imageHtml}
+                <div>${diary.content}</div>
+                
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;">
+                
+                <div class="comments-section">
+                    <h3>评论</h3>
+                    <div id="commentsList" class="comments-list">
+                        <!-- 评论将动态插入这里 -->
+                    </div>
+                    <div class="comment-input-area">
+                        <textarea id="commentInput" placeholder="写下你的评论..." rows="3"></textarea>
+                        <button id="submitCommentBtn" class="btn btn-primary">发表评论</button>
                     </div>
                 </div>
-                <div class="view-diary-content">
-                    ${diary.imageUrl ? `<img src="${diary.imageUrl}" alt="日记图片" style="max-width: 100%; margin-bottom: 20px;">` : ''}
-                    ${diary.content}
-                </div>
-                <div class="view-diary-footer">
-                    ${diary.location ? `<p>📍 ${diary.location}</p>` : ''}
-                    ${diary.weather ? `<p>🌤️ ${diary.weather}</p>` : ''}
-                    ${diary.tags ? `<p>标签: ${diary.tags}</p>` : ''}
-                </div>
             `;
+
+            // 隐藏编辑和删除按钮（广场中看别人的日记不能编辑）
+            dom.editBtn.style.display = 'none';
+            dom.deleteBtn.style.display = 'none';
+
+            // 加载评论
+            await loadComments(diaryId);
+
+            // 绑定提交评论事件
+            document.getElementById('submitCommentBtn').addEventListener('click', async () => {
+                const commentText = document.getElementById('commentInput').value.trim();
+                if (!commentText) {
+                    alert('请输入评论内容');
+                    return;
+                }
+                await submitComment(diaryId, commentText);
+            });
 
             dom.viewModal.classList.add('active');
         }
@@ -798,6 +845,26 @@ async function toggleLike(diaryId, likeBtn) {
         console.error('Error toggling like:', error);
     }
 }
+// 加载点赞信息（点赞数和点赞状态）
+async function loadLikeInfo(diaryId, likeBtn) {
+    try {
+        const [countResult, likedResult] = await Promise.all([
+            api.getLikeCount(diaryId),
+            api.isLikedByUser(diaryId)
+        ]);
+
+        if (countResult.code === 200) {
+            likeBtn.querySelector('.like-count').textContent = countResult.data || 0;
+        }
+
+        if (likedResult.code === 200 && likedResult.data) {
+            likeBtn.dataset.liked = 'true';
+            likeBtn.classList.add('liked');
+        }
+    } catch (error) {
+        console.error('Error loading like info:', error);
+    }
+}
 
 // 更新点赞数
 async function updateLikeCount(diaryId, likeBtn) {
@@ -808,6 +875,87 @@ async function updateLikeCount(diaryId, likeBtn) {
         }
     } catch (error) {
         console.error('Error updating like count:', error);
+    }
+}
+
+// 加载评论数
+async function loadCommentCount(diaryId, commentBtn) {
+    try {
+        const result = await api.getCommentCount(diaryId);
+        if (result.code === 200) {
+            commentBtn.querySelector('.comment-count').textContent = result.data || 0;
+        }
+    } catch (error) {
+        console.error('Error loading comment count:', error);
+    }
+}
+async function loadComments(diaryId) {
+    try {
+        const result = await api.getComments(diaryId);
+        const commentsList = document.getElementById('commentsList');
+
+        if (result.code === 200 && result.data && result.data.length > 0) {
+            const commentsHtml = result.data.map(comment => `
+                <div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-author">${comment.user?.nickname || '匿名用户'}</span>
+                        <span class="comment-time">${utils.formatDate(comment.createdAt)}</span>
+                        ${comment.userId === currentUser.id ? `<button class="btn-delete-comment" data-comment-id="${comment.id}">删除</button>` : ''}
+                    </div>
+                    <div class="comment-content">${comment.content}</div>
+                </div>
+            `).join('');
+
+            commentsList.innerHTML = commentsHtml;
+
+            // 绑定删除评论事件
+            document.querySelectorAll('.btn-delete-comment').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (confirm('确定删除这条评论吗？')) {
+                        const commentId = btn.dataset.commentId;
+                        await deleteComment(commentId);
+                    }
+                });
+            });
+        } else {
+            commentsList.innerHTML = '<p style="text-align: center; color: #999;">暂无评论</p>';
+        }
+    } catch (error) {
+        console.error('Error loading comments:', error);
+    }
+}
+
+// 提交评论
+async function submitComment(diaryId, content) {
+    try {
+        const result = await api.addComment(diaryId, content);
+        if (result.code === 200) {
+            document.getElementById('commentInput').value = '';
+            // 重新加载评论
+            await loadComments(diaryId);
+        } else {
+            alert('评论失败: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error submitting comment:', error);
+        alert('评论出错');
+    }
+}
+
+// 删除评论
+async function deleteComment(commentId) {
+    try {
+        const result = await api.deleteComment(commentId);
+        if (result.code === 200) {
+            // 重新加载评论
+            await loadComments(currentEditingDiaryId);
+        } else {
+            alert('删除失败: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('删除出错');
     }
 }
 

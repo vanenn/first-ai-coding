@@ -22,6 +22,10 @@ public class Comment {
     @Column(nullable = false)
     private Long userId;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "userId", insertable = false, updatable = false)
+    private User user;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 

@@ -736,51 +736,6 @@ body {
     }
 }
 
-/* 图片上传样式 */
-.image-upload-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.image-file-name {
-    color: var(--text-secondary);
-    font-size: 12px;
-    margin-left: 10px;
-}
-
-.image-preview {
-    margin-top: 15px;
-    position: relative;
-    width: 100%;
-    max-width: 300px;
-}
-
-.image-preview img {
-    width: 100%;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    object-fit: cover;
-    max-height: 300px;
-}
-
-.image-preview .btn-small {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    padding: 6px 10px;
-    background: rgba(239, 68, 68, 0.9);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-}
-
-.image-preview .btn-small:hover {
-    background: var(--danger-color);
-}
-
 /* 页面标签选项卡 */
 .header-title-section {
     display: flex;
@@ -943,6 +898,95 @@ body {
 .like-icon,
 .comment-icon {
     font-size: 16px;
+}
+
+/* 评论样式 */
+.comments-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.comments-section h3 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+}
+
+.comments-list {
+    margin-bottom: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.comment-item {
+    padding: 12px;
+    margin-bottom: 12px;
+    background-color: var(--light-bg);
+    border-radius: 8px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.comment-time {
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.btn-delete-comment {
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-delete-comment:hover {
+    background-color: #dc2626;
+}
+
+.comment-content {
+    color: var(--text-primary);
+    line-height: 1.5;
+    word-break: break-word;
+    font-size: 14px;
+}
+
+.comment-input-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.comment-input-area textarea {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.comment-input-area textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
 
 /* 响应式设计 */

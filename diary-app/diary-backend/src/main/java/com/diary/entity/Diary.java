@@ -18,6 +18,10 @@ public class Diary {
     @Column(nullable = false)
     private Long userId;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "userId", insertable = false, updatable = false)
+    private User user;
+
     @Column(nullable = false)
     private String title;
 
