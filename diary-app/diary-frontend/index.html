@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日记 - 记录生活的美好瞬间</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- 登录页面 -->
+        <div id="loginPage" class="page">
+            <div class="login-container">
+                <div class="login-box">
+                    <h1>日记本</h1>
+                    <p class="subtitle">记录生活的美好瞬间</p>
+
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="login">登录</button>
+                        <button class="tab-btn" data-tab="register">注册</button>
+                    </div>
+
+                    <!-- 登录表单 -->
+                    <form id="loginForm" class="tab-content active">
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" id="loginUsername" placeholder="输入用户名" required>
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" id="loginPassword" placeholder="输入密码" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">登录</button>
+                        <p id="loginError" class="error-msg"></p>
+                    </form>
+
+                    <!-- 注册表单 -->
+                    <form id="registerForm" class="tab-content">
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" id="registerUsername" placeholder="输入用户名" required>
+                        </div>
+                        <div class="form-group">
+                            <label>邮箱</label>
+                            <input type="email" id="registerEmail" placeholder="输入邮箱" required>
+                        </div>
+                        <div class="form-group">
+                            <label>昵称</label>
+                            <input type="text" id="registerNickname" placeholder="输入昵称">
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" id="registerPassword" placeholder="输入密码" required>
+                        </div>
+                        <div class="form-group">
+                            <label>确认密码</label>
+                            <input type="password" id="registerConfirmPassword" placeholder="确认密码" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">注册</button>
+                        <p id="registerError" class="error-msg"></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主页面 -->
+        <div id="mainPage" class="page" style="display: none;">
+            <!-- 顶部导航 -->
+            <header class="header">
+                <div class="header-content">
+                    <div class="header-title-section">
+                        <h1>📔 我的日记</h1>
+                        <div class="page-tabs">
+                            <button class="page-tab-btn active" data-page="diary">我的日记</button>
+                            <button class="page-tab-btn" data-page="square">广场</button>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <input type="text" id="searchInput" class="search-box" placeholder="搜索日记...">
+                        <img id="userAvatar" class="user-avatar" alt="头像">
+                        <div class="user-menu">
+                            <button id="profileBtn" class="menu-item">个人资料</button>
+                            <button id="logoutBtn" class="menu-item">退出登录</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 侧边栏 -->
+            <aside class="sidebar">
+                <button id="newDiaryBtn" class="btn btn-add">+ 新建日记</button>
+                <div class="filter-section">
+                    <h3>时间筛选</h3>
+                    <div class="date-picker">
+                        <input type="month" id="monthPicker">
+                    </div>
+                    <button id="resetFilterBtn" class="btn btn-small">全部</button>
+                </div>
+                <div class="filter-section">
+                    <h3>心情标签</h3>
+                    <div class="moods">
+                        <span class="mood-tag" data-mood="happy">😊 开心</span>
+                        <span class="mood-tag" data-mood="sad">😢 难过</span>
+                        <span class="mood-tag" data-mood="angry">😠 生气</span>
+                        <span class="mood-tag" data-mood="excited">🤩 兴奋</span>
+                        <span class="mood-tag" data-mood="calm">😌 平静</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 主内容区 -->
+            <main class="main-content">
+                <div id="diariesContainer" class="diaries-grid">
+                    <!-- 日记卡片将动态插入这里 -->
+                </div>
+                <div id="emptyState" class="empty-state">
+                    <p>还没有日记呢</p>
+                    <p>点击"新建日记"开始记录吧 ~</p>
+                </div>
+            </main>
+
+            <!-- 广场页面 -->
+            <div id="squarePage" class="square-page" style="display: none;">
+                <aside class="square-sidebar">
+                    <div class="sort-section">
+                        <h3>排序方式</h3>
+                        <button class="sort-btn active" data-sort="time">按时间</button>
+                        <button class="sort-btn" data-sort="likes">按热度</button>
+                    </div>
+                </aside>
+                <main class="square-main">
+                    <div id="squareDiariesContainer" class="diaries-grid">
+                        <!-- 公开日记卡片将动态插入这里 -->
+                    </div>
+                    <div id="squareEmptyState" class="empty-state" style="display: none;">
+                        <p>还没有公开日记</p>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- 编辑日记弹窗 -->
+        <div id="diaryModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">新建日记</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="diaryForm" class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>标题</label>
+                            <input type="text" id="diaryTitle" placeholder="给这一刻取个标题..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>日期</label>
+                            <input type="date" id="diaryDate" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>心情</label>
+                            <select id="diaryMood">
+                                <option value="">选择心情...</option>
+                                <option value="happy">😊 开心</option>
+                                <option value="sad">😢 难过</option>
+                                <option value="angry">😠 生气</option>
+                                <option value="excited">🤩 兴奋</option>
+                                <option value="calm">😌 平静</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>天气</label>
+                            <select id="diaryWeather">
+                                <option value="">选择天气...</option>
+                                <option value="sunny">☀️ 晴天</option>
+                                <option value="cloudy">⛅ 多云</option>
+                                <option value="rainy">🌧️ 下雨</option>
+                                <option value="snow">❄️ 下雪</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>位置</label>
+                        <input type="text" id="diaryLocation" placeholder="记录你现在的位置...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>内容</label>
+                        <textarea id="diaryContent" placeholder="开始记录你的想法和感受..." rows="10" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>标签</label>
+                        <input type="text" id="diaryTags" placeholder="输入标签，用逗号分隔">
+                    </div>
+
+                    <div class="form-group">
+                        <label>图片</label>
+                        <div class="image-upload-container">
+                            <input type="file" id="diaryImage" accept="image/*" hidden>
+                            <button type="button" id="imageUploadBtn" class="btn btn-secondary">选择图片...</button>
+                            <span id="imageFileName" class="image-file-name"></span>
+                        </div>
+                        <div id="imagePreview" class="image-preview" style="display: none;">
+                            <img id="previewImg" src="" alt="预览">
+                            <button type="button" id="removeImageBtn" class="btn btn-small">✕ 删除</button>
+                        </div>
+                        <input type="hidden" id="diaryImageUrl" value="">
+                    </div>
+
+                    <div class="form-group">
+                        <label>可见性</label>
+                        <select id="diaryVisibility">
+                            <option value="PRIVATE">🔒 私有（只有自己可见）</option>
+                            <option value="PUBLIC">🌐 公开（所有人可见）</option>
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="cancelBtn" class="btn btn-secondary">取消</button>
+                        <button type="submit" class="btn btn-primary">保存日记</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 个人资料弹窗 -->
+        <div id="profileModal" class="modal">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h2>个人资料</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <form id="profileForm" class="modal-body">
+                    <div class="profile-avatar">
+                        <img id="profileAvatarImg" src="" alt="头像">
+                    </div>
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="profileUsername" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>邮箱</label>
+                        <input type="email" id="profileEmail" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>昵称</label>
+                        <input type="text" id="profileNickname">
+                    </div>
+                    <div class="form-group">
+                        <label>头像URL</label>
+                        <input type="text" id="profileAvatar">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="cancelProfileBtn" class="btn btn-secondary">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 日记详情查看 -->
+        <div id="viewModal" class="modal">
+            <div class="modal-content modal-large">
+                <div class="modal-close">&times;</div>
+                <div class="modal-body">
+                    <article id="viewContent" class="diary-detail">
+                        <!-- 日记详情将动态插入这里 -->
+                    </article>
+                    <div class="view-actions">
+                        <button id="editBtn" class="btn btn-primary">编辑</button>
+                        <button id="deleteBtn" class="btn btn-danger">删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

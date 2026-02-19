@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: diary-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/diary_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+jwt:
+  secret: diary-app-secret-key-change-in-production
+  expiration: 86400000
+
+logging:
+  level:
+    root: INFO
+    com.diary: DEBUG
